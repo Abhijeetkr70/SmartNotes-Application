@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useAuth } from '@clerk/clerk-react';
 import { fetchNotes, createNote, updateNote, deleteNote } from '../api/notes';
 
 export function useNotes() {
+  const { getToken } = useAuth();
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -18,19 +20,23 @@ export function useNotes() {
     try {
       setLoading(true);
       setError(null);
-      const data = await fetchNotes({ ...opts, signal: controller.signal });
+      const token = await getToken();
+      const data = await fetchNotes({ ...opts, token, signal: controller.signal });
       if (!controller.signal.aborted) {
         setNotes(data);
       }
     } catch (err) {
       if (err.name === 'AbortError' || err.name === 'TimeoutError') return;
+      if (err.message?.includes('No token') || err.message?.includes('Invalid token')) {
+        return;
+      }
       setError(err.message);
     } finally {
       if (!controller.signal.aborted) {
         setLoading(false);
       }
     }
-  }, []);
+  }, [getToken]);
 
   useEffect(() => {
     loadNotes();
@@ -45,21 +51,24 @@ export function useNotes() {
   }, [search, activeTags, loadNotes]);
 
   const addNote = useCallback(async (data) => {
-    const created = await createNote(data);
+    const token = await getToken();
+    const created = await createNote(data, { token });
     setNotes((prev) => [created, ...prev]);
     return created;
-  }, []);
+  }, [getToken]);
 
   const editNote = useCallback(async (id, data) => {
-    const updated = await updateNote(id, data);
+    const token = await getToken();
+    const updated = await updateNote(id, data, { token });
     setNotes((prev) => prev.map((n) => (n._id === id ? updated : n)));
     return updated;
-  }, []);
+  }, [getToken]);
 
   const removeNote = useCallback(async (id) => {
-    await deleteNote(id);
+    const token = await getToken();
+    await deleteNote(id, { token });
     setNotes((prev) => prev.filter((n) => n._id !== id));
-  }, []);
+  }, [getToken]);
 
   const toggleTag = useCallback((tag) => {
     setActiveTags((prev) =>

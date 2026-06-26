@@ -4,7 +4,7 @@ import { createNoteSchema, updateNoteSchema } from '../validation/noteSchema.js'
 export const getNotes = async (req, res, next) => {
   try {
     const { search, tags, page = 1, limit = 50 } = req.query;
-    const filter = {};
+    const filter = { userId: req.userId };
 
     if (search && search.trim()) {
       const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -48,7 +48,7 @@ export const getNotes = async (req, res, next) => {
 export const createNote = async (req, res, next) => {
   try {
     const parsed = createNoteSchema.parse(req.body);
-    const note = await Note.create(parsed);
+    const note = await Note.create({ ...parsed, userId: req.userId });
     res.status(201).json({ success: true, data: note });
   } catch (error) {
     next(error);
@@ -61,10 +61,11 @@ export const updateNote = async (req, res, next) => {
     if (Object.keys(parsed).length === 0) {
       return res.status(400).json({ success: false, message: 'No fields to update' });
     }
-    const note = await Note.findByIdAndUpdate(req.params.id, parsed, {
-      new: true,
-      runValidators: true,
-    });
+    const note = await Note.findOneAndUpdate(
+      { _id: req.params.id, userId: req.userId },
+      parsed,
+      { new: true, runValidators: true }
+    );
     if (!note) {
       return res.status(404).json({ success: false, message: 'Note not found' });
     }
@@ -76,7 +77,7 @@ export const updateNote = async (req, res, next) => {
 
 export const deleteNote = async (req, res, next) => {
   try {
-    const note = await Note.findByIdAndDelete(req.params.id);
+    const note = await Note.findOneAndDelete({ _id: req.params.id, userId: req.userId });
     if (!note) {
       return res.status(404).json({ success: false, message: 'Note not found' });
     }

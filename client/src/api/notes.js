@@ -10,7 +10,13 @@ function withTimeout(signal, ms = 10000) {
 
 async function request(url, options = {}) {
   const signal = withTimeout(options.signal);
-  const res = await fetch(url, { ...options, signal });
+  const headers = { ...options.headers };
+
+  if (options.token) {
+    headers['Authorization'] = `Bearer ${options.token}`;
+  }
+
+  const res = await fetch(url, { ...options, headers, signal });
   const json = await res.json();
   if (!res.ok) {
     const msg = json.errors
@@ -21,35 +27,37 @@ async function request(url, options = {}) {
   return json;
 }
 
-export async function fetchNotes({ search, tags, signal } = {}) {
+export async function fetchNotes({ search, tags, signal, token } = {}) {
   const params = new URLSearchParams();
   if (search) params.set('search', search);
   if (tags && tags.length > 0) params.set('tags', tags.join(','));
   const qs = params.toString();
-  const json = await request(qs ? `${BASE}?${qs}` : BASE, { signal });
+  const json = await request(qs ? `${BASE}?${qs}` : BASE, { token, signal });
   return json.data;
 }
 
-export async function createNote(data, signal) {
+export async function createNote(data, { signal, token } = {}) {
   const json = await request(BASE, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
+    token,
     signal,
   });
   return json.data;
 }
 
-export async function updateNote(id, data, signal) {
+export async function updateNote(id, data, { signal, token } = {}) {
   const json = await request(`${BASE}/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
+    token,
     signal,
   });
   return json.data;
 }
 
-export async function deleteNote(id, signal) {
-  return request(`${BASE}/${id}`, { method: 'DELETE', signal });
+export async function deleteNote(id, { signal, token } = {}) {
+  return request(`${BASE}/${id}`, { method: 'DELETE', token, signal });
 }

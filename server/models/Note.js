@@ -2,6 +2,11 @@ import mongoose from 'mongoose';
 
 const noteSchema = new mongoose.Schema(
   {
+    userId: {
+      type: String,
+      required: true,
+      index: true,
+    },
     title: {
       type: String,
       required: [true, 'Title is required'],
@@ -34,8 +39,8 @@ const noteSchema = new mongoose.Schema(
   }
 );
 
+noteSchema.index({ userId: 1, createdAt: -1 });
+noteSchema.index({ userId: 1, tags: 1 });
 noteSchema.index({ title: 'text', body: 'text' });
-noteSchema.index({ tags: 1 });
-noteSchema.index({ createdAt: -1 });
 
 export default mongoose.model('Note', noteSchema);
