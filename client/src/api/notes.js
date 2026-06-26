@@ -1,4 +1,4 @@
-const BASE = '/api/notes';
+const BASE = import.meta.env.VITE_API_BASE_URL || '/api/notes';
 
 function withTimeout(signal, ms = 10000) {
   const controller = new AbortController();
