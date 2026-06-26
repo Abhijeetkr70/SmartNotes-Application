@@ -1,0 +1,41 @@
+import mongoose from 'mongoose';
+
+const noteSchema = new mongoose.Schema(
+  {
+    title: {
+      type: String,
+      required: [true, 'Title is required'],
+      trim: true,
+      maxlength: [200, 'Title cannot exceed 200 characters'],
+    },
+    body: {
+      type: String,
+      default: '',
+      maxlength: [50000, 'Body cannot exceed 50000 characters'],
+    },
+    color: {
+      type: String,
+      default: '#10b981',
+      match: [/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/, 'Color must be a valid hex color'],
+    },
+    tags: {
+      type: [String],
+      default: [],
+    },
+  },
+  {
+    timestamps: true,
+    toJSON: {
+      transform(_doc, ret) {
+        delete ret.__v;
+        return ret;
+      },
+    },
+  }
+);
+
+noteSchema.index({ title: 'text', body: 'text' });
+noteSchema.index({ tags: 1 });
+noteSchema.index({ createdAt: -1 });
+
+export default mongoose.model('Note', noteSchema);
