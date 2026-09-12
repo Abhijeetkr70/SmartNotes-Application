@@ -1,6 +1,15 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAuth } from '@clerk/clerk-react';
-import { fetchNotes, createNote, updateNote, deleteNote } from '../api/notes';
+import {
+  fetchNotes,
+  createNote,
+  updateNote,
+  deleteNote,
+  fetchRecentDeleted,
+  addTask,
+  restoreNote,
+  permanentDeleteNote,
+} from '../api/notes';
 
 export function useNotes() {
   const { getToken } = useAuth();
@@ -70,6 +79,32 @@ export function useNotes() {
     setNotes((prev) => prev.filter((n) => n._id !== id));
   }, [getToken]);
 
+  const addTask = useCallback(async (data) => {
+    const token = await getToken();
+    const created = await addTask(data, { token });
+    setNotes((prev) => [created, ...prev]);
+    return created;
+  }, [getToken]);
+
+  const fetchRecentDeleted = useCallback(async () => {
+    const token = await getToken();
+    const recent = await fetchRecentDeleted({ token });
+    setNotes(recent);
+  }, [getToken]);
+
+  const restoreNote = useCallback(async (id) => {
+    const token = await getToken();
+    const restored = await restoreNote(id, { token });
+    setNotes((prev) => prev.map((n) => (n._id === id ? restored : n)));
+    return restored;
+  }, [getToken]);
+
+  const permanentDeleteNote = useCallback(async (id) => {
+    const token = await getToken();
+    await permanentDeleteNote(id, { token });
+    setNotes((prev) => prev.filter((n) => n._id !== id));
+  }, [getToken]);
+
   const toggleTag = useCallback((tag) => {
     setActiveTags((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
@@ -98,6 +133,10 @@ export function useNotes() {
     addNote,
     editNote,
     removeNote,
+    addTask,
+    fetchRecentDeleted,
+    restoreNote,
+    permanentDeleteNote,
     refresh: () => loadNotes({ search, tags: activeTags }),
   };
 }

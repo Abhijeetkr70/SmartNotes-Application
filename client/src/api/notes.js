@@ -61,3 +61,41 @@ export async function updateNote(id, data, { signal, token } = {}) {
 export async function deleteNote(id, { signal, token } = {}) {
   return request(`${BASE}/${id}`, { method: 'DELETE', token, signal });
 }
+
+export async function fetchRecentDeleted({ signal, token } = {}) {
+  const json = await request(`${BASE}/recent-deleted`, {
+    signal,
+    token,
+  });
+  return json.data;
+}
+
+export async function addTask(data, { signal, token } = {}) {
+  const json = await request(BASE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    token,
+    signal,
+  });
+  return json.data;
+}
+
+export async function restoreNote(id, { signal, token } = {}) {
+  const json = await request(`${BASE}/${id}/restore`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    token,
+    signal,
+  });
+  return json.data;
+}
+
+export async function permanentDeleteNote(id, { signal, token } = {}) {
+  const json = await request(`${BASE}/${id}/permanent`, {
+    method: 'DELETE',
+    token,
+    signal,
+  });
+  return json.data;
+}

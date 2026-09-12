@@ -27,6 +27,11 @@ const noteSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    status: {
+      type: String,
+      enum: ['active', 'deleted', 'archived'],
+      default: 'active',
+    },
   },
   {
     timestamps: true,
@@ -41,6 +46,7 @@ const noteSchema = new mongoose.Schema(
 
 noteSchema.index({ userId: 1, createdAt: -1 });
 noteSchema.index({ userId: 1, tags: 1 });
+noteSchema.index({ userId: 1, status: 1 });
 noteSchema.index({ title: 'text', body: 'text' });
 
 export default mongoose.model('Note', noteSchema);

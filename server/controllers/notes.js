@@ -79,13 +79,66 @@ export const updateNote = async (req, res, next) => {
   }
 };
 
-export const deleteNote = async (req, res, next) => {
+export const softDeleteNote = async (req, res, next) => {
+  try {
+    const note = await Note.findOneAndUpdate(
+      { _id: req.params.id, userId: req.userId },
+      { status: 'deleted' },
+      { new: true }
+    );
+    if (!note) {
+      return res.status(404).json({ success: false, message: 'Note not found' });
+    }
+    res.json({ success: true, data: note });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const restoreNote = async (req, res, next) => {
+  try {
+    const note = await Note.findOneAndUpdate(
+      { _id: req.params.id, userId: req.userId },
+      { status: 'active' },
+      { new: true }
+    );
+    if (!note) {
+      return res.status(404).json({ success: false, message: 'Note not found' });
+    }
+    res.json({ success: true, data: note });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const permanentDeleteNote = async (req, res, next) => {
   try {
     const note = await Note.findOneAndDelete({ _id: req.params.id, userId: req.userId });
     if (!note) {
       return res.status(404).json({ success: false, message: 'Note not found' });
     }
-    res.json({ success: true, message: 'Note deleted successfully' });
+    res.json({ success: true, message: 'Note permanently deleted' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getRecentDeleted = async (req, res, next) => {
+  try {
+    const notes = await Note.find({ userId: req.userId, status: 'deleted' })
+      .sort({ createdAt: -1 })
+      .limit(20);
+    res.json({ success: true, data: notes });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const addTask = async (req, res, next) => {
+  try {
+    const parsed = createNoteSchema.parse(req.body);
+    const note = await Note.create({ ...parsed, userId: req.userId });
+    res.status(201).json({ success: true, data: note });
   } catch (error) {
     next(error);
   }
