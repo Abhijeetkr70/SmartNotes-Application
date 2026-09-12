@@ -25,9 +25,13 @@ export const getNotes = async (req, res, next) => {
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
     const skip = (pageNum - 1) * limitNum;
 
+    const countFilter = Object.keys(filter).length === 1 && filter.userId
+      ? undefined
+      : filter;
+
     const [data, total] = await Promise.all([
       Note.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limitNum),
-      Note.countDocuments(filter),
+      countFilter ? Note.countDocuments(countFilter) : Note.estimatedDocumentCount(),
     ]);
 
     res.json({
