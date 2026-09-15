@@ -3,15 +3,12 @@ import { createNoteSchema, updateNoteSchema } from '../validation/noteSchema.js'
 
 export const getNotes = async (req, res, next) => {
   try {
-    const { search, tags, page = 1, limit = 50 } = req.query;
-    const filter = { userId: req.userId };
+    const { search, tags, cursor, limit = 20 } = req.query;
+    const filter = { userId: req.userId, status: 'active' };
 
     if (search && search.trim()) {
-      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      filter.$or = [
-        { title: { $regex: escaped, $options: 'i' } },
-        { body: { $regex: escaped, $options: 'i' } },
-      ];
+      const searchText = search.trim();
+      filter.$text = { $search: searchText };
     }
 
     if (tags) {
@@ -21,27 +18,43 @@ export const getNotes = async (req, res, next) => {
       }
     }
 
-    const pageNum = Math.max(1, parseInt(page, 10) || 1);
-    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
-    const skip = (pageNum - 1) * limitNum;
+    if (cursor) {
+      try {
+        const decoded = Buffer.from(cursor, 'base64').toString('utf-8');
+        const { createdAt, _id } = JSON.parse(decoded);
+        filter.$or = [
+          { createdAt: { $lt: new Date(createdAt) } },
+          { createdAt: new Date(createdAt), _id: { $lt: new mongoose.Types.ObjectId(_id) } },
+        ];
+      } catch {
+        return res.status(400).json({ success: false, message: 'Invalid cursor' });
+      }
+    }
 
-    const countFilter = Object.keys(filter).length === 1 && filter.userId
-      ? undefined
-      : filter;
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
 
-    const [data, total] = await Promise.all([
-      Note.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limitNum),
-      countFilter ? Note.countDocuments(countFilter) : Note.estimatedDocumentCount(),
-    ]);
+    const notes = await Note.find(filter)
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(limitNum + 1)
+      .select('title body color tags createdAt updatedAt')
+      .lean();
+
+    let nextCursor = null;
+    if (notes.length > limitNum) {
+      const nextNote = notes.pop();
+      nextCursor = Buffer.from(JSON.stringify({
+        createdAt: nextNote.createdAt.toISOString(),
+        _id: nextNote._id.toString(),
+      })).toString('base64');
+    }
 
     res.json({
       success: true,
-      data,
+      data: notes,
       pagination: {
-        page: pageNum,
+        nextCursor,
+        hasMore: !!nextCursor,
         limit: limitNum,
-        total,
-        pages: Math.ceil(total / limitNum),
       },
     });
   } catch (error) {

@@ -27,13 +27,15 @@ async function request(url, options = {}) {
   return json;
 }
 
-export async function fetchNotes({ search, tags, signal, token } = {}) {
+export async function fetchNotes({ search, tags, cursor, limit = 20, signal, token } = {}) {
   const params = new URLSearchParams();
   if (search) params.set('search', search);
   if (tags && tags.length > 0) params.set('tags', tags.join(','));
+  if (cursor) params.set('cursor', cursor);
+  if (limit) params.set('limit', String(limit));
   const qs = params.toString();
   const json = await request(qs ? `${BASE}?${qs}` : BASE, { token, signal });
-  return json.data;
+  return json;
 }
 
 export async function createNote(data, { signal, token } = {}) {
