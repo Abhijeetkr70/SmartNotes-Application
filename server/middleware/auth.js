@@ -1,4 +1,8 @@
-import { clerkClient } from '@clerk/clerk-sdk-node';
+import { createClerkClient } from '@clerk/backend';
+
+const clerkClient = createClerkClient({
+  secretKey: process.env.CLERK_SECRET_KEY,
+});
 
 export async function requireAuth(req, res, next) {
   try {
@@ -20,6 +24,7 @@ export async function requireAuth(req, res, next) {
     if (error.status === 401 || error.status === 400 || error.name === 'TokenVerificationError') {
       return res.status(401).json({ success: false, message: 'Invalid or expired token' });
     }
+    console.error('Auth error:', error);
     next(error);
   }
 }

@@ -5,10 +5,10 @@ import {
   createNote,
   updateNote,
   deleteNote,
-  fetchRecentDeleted,
+  fetchRecentDeleted as apiFetchRecentDeleted,
   addTask,
-  restoreNote,
-  permanentDeleteNote,
+  restoreNote as apiRestoreNote,
+  permanentDeleteNote as apiPermanentDeleteNote,
 } from '../api/notes';
 
 export function useNotes() {
@@ -88,20 +88,20 @@ export function useNotes() {
 
   const fetchRecentDeleted = useCallback(async () => {
     const token = await getToken();
-    const recent = await fetchRecentDeleted({ token });
+    const recent = await apiFetchRecentDeleted({ token });
     setNotes(recent);
   }, [getToken]);
 
   const restoreNote = useCallback(async (id) => {
     const token = await getToken();
-    const restored = await restoreNote(id, { token });
+    const restored = await apiRestoreNote(id, { token });
     setNotes((prev) => prev.map((n) => (n._id === id ? restored : n)));
     return restored;
   }, [getToken]);
 
   const permanentDeleteNote = useCallback(async (id) => {
     const token = await getToken();
-    await permanentDeleteNote(id, { token });
+    await apiPermanentDeleteNote(id, { token });
     setNotes((prev) => prev.filter((n) => n._id !== id));
   }, [getToken]);
 
